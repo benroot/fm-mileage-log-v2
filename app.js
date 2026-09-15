@@ -32,6 +32,10 @@ function hashTrip(label, miles) {
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// ── Persistence — single localStorage blob (profile + period + trips) ──
+// trips is a single live list, not scoped per month/year (see CLAUDE.md).
+const STORAGE_KEY = 'fm_mileage_log_v2';
+
 function mileageLog() {
   return {
     // ── Config (stubbed for now) ──
@@ -127,11 +131,42 @@ function mileageLog() {
       this.resetNotices = {};
     },
 
+    saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          profile: this.profile,
+          period: this.period,
+          trips: this.trips,
+        }));
+      } catch (e) { /* localStorage unavailable/full — autosave silently skipped */ }
+    },
+
     init() {
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
+
+      if (saved && saved.profile) Object.assign(this.profile, saved.profile);
+      if (saved && saved.period) Object.assign(this.period, saved.period);
+
       if (!this.profile.date) {
         const today = new Date();
         this.profile.date = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
       }
+
+      // Restoring trips is deferred to $nextTick: each day's <select> options
+      // are populated by a nested x-for, so assigning trips synchronously here
+      // (before those options exist in the DOM) would leave the <select>
+      // showing "No Trip" even though the underlying data is correct. Assigning
+      // after mount makes the reactive write happen once options already exist,
+      // so x-model's DOM sync finds the matching option.
+      this.$nextTick(() => {
+        if (saved && saved.trips) Object.assign(this.trips, saved.trips);
+      });
+
+      this.$watch(
+        () => JSON.stringify({ profile: this.profile, period: this.period, trips: this.trips }),
+        () => this.saveState()
+      );
     },
   };
 }
