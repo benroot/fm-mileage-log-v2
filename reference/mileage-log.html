@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mileage Reimbursement Log 2026</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1 — Header + Preamble + Full Grid (days 1–31)
+═══════════════════════════════════════════ -->
+<div class="page" id="page1">
+
+  <div class="doc-header">
+    <div>
+      <h1>Mileage Reimbursement Log 2026</h1>
+      <div class="subtitle">University of Michigan Family Medicine Residency Program</div>
+    </div>
+  </div>
+
+  <!-- Preamble fields -->
+  <div class="preamble">
+    <div class="preamble-row">
+      <div class="field-group">
+        <span class="field-label">Name:</span>
+        <input class="field-input" id="f-name" type="text" value="" placeholder="Full name">
+      </div>
+      <div class="field-group" style="max-width:220px">
+        <span class="field-label">Employee ID#:</span>
+        <input class="field-input" id="f-empid" type="text" value="" placeholder="ID">
+      </div>
+    </div>
+    <div class="preamble-row">
+      <div class="field-group">
+        <span class="field-label">Address:</span>
+        <input class="field-input" id="f-addr" type="text" value="" placeholder="City / Zip">
+      </div>
+    </div>
+    <div class="preamble-row" style="flex-wrap:wrap; gap:8px;">
+      <div class="field-group" style="max-width:240px">
+        <span class="field-label">Rotation:</span>
+        <input class="field-input" id="f-rotation" type="text" value="" placeholder="Rotation">
+      </div>
+      <div class="month-group">
+        <span class="month-label">Month:</span>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Jan"> Jan</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Feb"> Feb</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Mar"> Mar</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Apr"> Apr</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="May"> May</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Jun"> Jun</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Jul"> Jul</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Aug"> Aug</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Sep"> Sep</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Oct"> Oct</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Nov"> Nov</label>
+        <label class="month-item"><input type="checkbox" class="month-cb" value="Dec"> Dec</label>
+        <span class="rate-badge" id="rate-badge">Rate: $0.725/mi</span>
+      </div>
+      <div class="year-group">
+        <span class="field-label">Year: <strong>2026</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trip reference key -->
+  <div class="trip-ref">
+    <div class="trip-ref-item"><strong>1.</strong> UMHS → Chelsea → UMHS = 34 mi</div>
+    <div class="trip-ref-item"><strong>2.</strong> UMHS → Chelsea → Ypsilanti → UMHS = 54 mi</div>
+    <div class="trip-ref-item"><strong>3.</strong> UMHS → Ypsilanti → UMHS = 24 mi</div>
+    <div class="trip-ref-item"><strong>4.</strong> UMHS → Dexter → UMHS = 18 mi</div>
+    <div class="trip-ref-item"><strong>5.</strong> UMHS → Chelsea → Dexter → UMHS = 34.5 mi</div>
+    <div class="trip-ref-item"><strong>6.</strong> UMHS → Northville → UMHS = 50 mi</div>
+    <div class="trip-ref-item"><strong>7.</strong> UMHS → Livonia → UMHS = 56 mi</div>
+    <div class="trip-ref-item"><strong>8.</strong> UMHS → Luke Clinic → UMHS = 82 mi</div>
+    <div class="trip-ref-item"><strong>9.</strong> UMHS → Hamilton Clinic → UMHS = 116 mi</div>
+    <div class="trip-note">During elective, ONLY Continuity Clinics qualify. Rate: <span id="trip-rate-display">$0.725</span>/mile</div>
+  </div>
+
+  <!-- Main grid — All Days 1–31 -->
+  <div class="grid-wrapper">
+    <table class="main-grid" id="main-table">
+      <colgroup>
+        <col class="col-day"><col class="col-ind">
+        <col class="col-t1"><col class="col-t2"><col class="col-t3">
+        <col class="col-t4"><col class="col-t5"><col class="col-t6">
+        <col class="col-t7"><col class="col-t8"><col class="col-t9">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="2">DAY</th>
+          <th rowspan="2" title="Checked if any trip selected">✓</th>
+          <th>Trip 1</th>
+          <th>Trip 2</th>
+          <th>Trip 3</th>
+          <th>Trip 4</th>
+          <th>Trip 5</th>
+          <th>Trip 6</th>
+          <th>Trip 7</th>
+          <th>Trip 8</th>
+          <th>Trip 9</th>
+        </tr>
+        <tr>
+          <th>CHE<br>34 mi</th>
+          <th>UM→CHE<br>→YHC→UM<br>54 mi</th>
+          <th>YHC<br>24 mi</th>
+          <th>Dexter<br>18 mi</th>
+          <th>UM→CHE<br>→Dxt→UM<br>34.5 mi</th>
+          <th>Northville<br>50 mi</th>
+          <th>Livonia<br>56 mi</th>
+          <th>Luke<br>82 mi</th>
+          <th>Flint<br>116 mi</th>
+        </tr>
+      </thead>
+      <tbody id="grid-body-1">
+        <!-- Days 1–31 injected by JS -->
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end page 1 -->
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2 — Summary + Signature
+═══════════════════════════════════════════ -->
+<div class="page" id="page2">
+
+  <div class="doc-header">
+    <div>
+      <h1>Mileage Reimbursement Log 2026</h1>
+      <div class="subtitle" id="p2-subtitle">University of Michigan Family Medicine Residency Program</div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-section">
+    <div class="summary-header">Summary &amp; Reimbursement Calculation</div>
+    <div class="summary-body" id="summary-body">
+      <!-- injected by JS -->
+    </div>
+  </div>
+
+  <!-- Uber / cab line -->
+  <div class="uber-line">
+    <strong>Cab / Uber / Lyft receipt:</strong>
+    <span>If unsafe to travel home independently after a shift, submit receipt for reimbursement. See Sleep &amp; Fatigue Policy on MedHub.</span>
+  </div>
+
+  <!-- Signature -->
+  <div class="sig-section">
+    <div class="sig-field">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+        <span class="field-label">Signature:</span>
+        <div class="sig-mode-toggle">
+          <button class="sig-mode-btn active" id="sig-btn-upload" onclick="setSigMode('upload')">⬆ Upload</button>
+          <button class="sig-mode-btn" id="sig-btn-draw" onclick="setSigMode('draw')">✏ Draw</button>
+        </div>
+      </div>
+
+      <!-- Upload mode -->
+      <div id="sig-upload-wrap">
+        <div class="sig-line" id="sig-line" onclick="document.getElementById('sig-file-input').click()" title="Click to upload signature image">
+          <span class="sig-placeholder" id="sig-placeholder">Click to select signature image…</span>
+          <img class="sig-img" id="sig-img" src="" alt="" style="display:none;">
+          <button class="sig-clear-btn" id="sig-clear-btn" onclick="clearSignature(event)" title="Remove signature">✕</button>
+        </div>
+        <input type="file" id="sig-file-input" accept="image/*">
+      </div>
+
+      <!-- Draw mode -->
+      <div class="sig-draw-wrap" id="sig-draw-wrap">
+        <div class="sig-canvas-container" id="sig-canvas-container">
+          <canvas id="sig-canvas"></canvas>
+          <span class="sig-canvas-hint" id="sig-canvas-hint">Sign here…</span>
+        </div>
+        <div class="sig-draw-toolbar">
+          <button class="sig-draw-btn primary" onclick="saveDrawnSignature()">✓ Use Signature</button>
+          <button class="sig-draw-btn danger" onclick="clearCanvas()">✕ Clear</button>
+          <span style="font-size:7pt;color:var(--muted);margin-left:4px;">Draw with mouse or touch</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="date-field">
+      <span class="field-label">Date:</span>
+      <input class="field-input" id="f-date" type="text" placeholder="MM/DD/YYYY"
+             value="">
+      <button class="today-btn" onclick="document.getElementById('f-date').value=todayStr; updateP2Subtitle(); saveState();">Today</button>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    * Mileage reimbursed at <span id="footer-rate">$0.725</span> per mile. Submit completed log to the residency program coordinator by the 5th of the following month.
+  </div>
+
+  <div class="readme-link" style="text-align:center; margin-top:8px; font-size:7.5pt; color:var(--muted);">
+    <a href="./" style="color:var(--muted);">Instructions &amp; Help</a>
+  </div>
+
+  <div class="btn-bar">
+    <button class="btn btn-clear" onclick="clearGrid()">🗑 Reset Trips</button>
+    <button class="btn" style="background:#6c757d;color:white;" onclick="newForm()">📄 Clear All Data</button>
+    <button class="btn" id="btn-undo" style="background:#6f42c1;color:white;" onclick="undo()" disabled>↩ Undo</button>
+    <button class="btn" id="btn-redo" style="background:#6f42c1;color:white;" onclick="redo()" disabled>↪ Redo</button>
+    <button class="btn btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
+    <div class="btn-bar-secondary">
+      <button class="btn-secondary" onclick="exportJSON()">⬇ Export Data</button>
+      <button class="btn-secondary" onclick="document.getElementById('import-file').click()">⬆ Import Data</button>
+      <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+    </div>
+  </div>
+
+</div><!-- end page 2 -->
+
+<script src="app.js"></script>
+</body>
+</html>
