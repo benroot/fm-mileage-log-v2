@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mileage Reimbursement Log</title>
+<link rel="stylesheet" href="styles.css">
+<script src="vendor/alpine.min.js" defer></script>
+</head>
+<body>
+
+<div x-data="mileageLog()" x-init="init()">
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1 — Header + Preamble + Trip Entry
+═══════════════════════════════════════════ -->
+<div class="page" id="page1">
+
+  <div class="doc-header">
+    <div>
+      <h1>Mileage Reimbursement Log</h1>
+      <div class="subtitle">University of Michigan Family Medicine Residency Program</div>
+    </div>
+  </div>
+
+  <!-- Preamble fields -->
+  <div class="preamble">
+    <div class="preamble-row">
+      <div class="field-group">
+        <label class="field-label" for="f-name">Name:</label>
+        <input class="field-input" id="f-name" type="text" x-model="profile.name" placeholder="Full name">
+      </div>
+      <div class="field-group" style="max-width:220px">
+        <label class="field-label" for="f-empid">Employee ID#:</label>
+        <input class="field-input" id="f-empid" type="text" x-model="profile.empid" placeholder="ID">
+      </div>
+    </div>
+    <div class="preamble-row">
+      <div class="field-group">
+        <label class="field-label" for="f-addr">Address:</label>
+        <input class="field-input" id="f-addr" type="text" x-model="profile.addr" placeholder="City / Zip">
+      </div>
+    </div>
+    <div class="preamble-row" style="flex-wrap:wrap; gap:8px;">
+      <div class="field-group" style="max-width:240px">
+        <label class="field-label" for="f-rotation">Rotation:</label>
+        <input class="field-input" id="f-rotation" type="text" x-model="profile.rotation" placeholder="Rotation">
+      </div>
+      <div class="field-group month-year-group">
+        <label class="field-label" for="f-month">Month:</label>
+        <select class="field-input month-select" id="f-month" x-model.number="period.month">
+          <option value="0">January</option>
+          <option value="1">February</option>
+          <option value="2">March</option>
+          <option value="3">April</option>
+          <option value="4">May</option>
+          <option value="5">June</option>
+          <option value="6">July</option>
+          <option value="7">August</option>
+          <option value="8">September</option>
+          <option value="9">October</option>
+          <option value="10">November</option>
+          <option value="11">December</option>
+        </select>
+        <label class="field-label" for="f-year">Year:</label>
+        <input class="field-input year-input" id="f-year" type="number" x-model.number="period.year" min="2020" max="2100">
+        <span class="rate-badge" x-text="'Rate: $' + currentRate.toFixed(3) + '/mi'"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-status" x-text="configStatusText"></div>
+
+  <!-- Trip entry — one select per day (screen only; print shows the itemized list below instead) -->
+  <div class="entry-wrapper screen-only">
+    <table class="entry-table">
+      <thead>
+        <tr><th>Day</th><th>Trip</th></tr>
+      </thead>
+      <tbody>
+        <template x-for="day in daysInMonth" :key="day">
+          <tr>
+            <td class="day-num" x-text="day"></td>
+            <td>
+              <select class="trip-select"
+                      :id="'trip-' + day"
+                      :aria-label="'Trip for ' + monthNames[period.month] + ' ' + day"
+                      x-model="trips[day]"
+                      @change="onTripChange(day)">
+                <option value="">No Trip</option>
+                <template x-for="opt in tripOptions" :key="opt.hash">
+                  <option :value="opt.hash" x-text="opt.label + ' — ' + opt.miles + ' mi'"></option>
+                </template>
+              </select>
+              <div class="trip-reset-notice" x-show="resetNotices[day]">
+                Previous selection no longer available — reset to No Trip
+              </div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Itemized trip list — print only; only days with a trip selected, single column -->
+  <div class="itemized-wrapper print-only">
+    <div class="itemized-row itemized-header">
+      <span class="itemized-day">Date</span>
+      <span class="itemized-label">Trip</span>
+    </div>
+    <template x-for="row in itemizedTrips" :key="row.day">
+      <div class="itemized-row">
+        <span class="itemized-day" x-text="row.dateLabel"></span>
+        <span class="itemized-label" x-text="row.label"></span>
+      </div>
+    </template>
+  </div>
+
+</div><!-- end page 1 -->
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2 — Summary + Signature
+═══════════════════════════════════════════ -->
+<div class="page" id="page2">
+
+  <div class="doc-header">
+    <div>
+      <h1>Mileage Reimbursement Log</h1>
+      <div class="subtitle" x-text="p2Subtitle"></div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-section">
+    <div class="summary-header">Summary &amp; Reimbursement Calculation</div>
+    <div class="summary-body" aria-live="polite">
+      <template x-for="row in summaryRows" :key="row.hash">
+        <div class="summary-row">
+          <span class="sum-desc">
+            <span x-text="row.label"></span>
+            <span x-text="'— ' + row.count + ' trip' + (row.count !== 1 ? 's' : '') + ' × ' + row.miles + ' mi × $' + row.rate.toFixed(3) + '/mi'"></span>
+          </span>
+          <span class="sum-amount" x-text="'$' + row.amount.toFixed(2)"></span>
+        </div>
+      </template>
+      <div class="sum-total-row">
+        <span class="sum-total-label">Total Reimbursement</span>
+        <span class="sum-total-amount" x-text="'$' + grandTotal.toFixed(2)"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Uber / cab line -->
+  <div class="uber-line">
+    <strong>Cab / Uber / Lyft receipt:</strong>
+    <span>If unsafe to travel home independently after a shift, submit receipt for reimbursement. See Sleep &amp; Fatigue Policy on MedHub.</span>
+  </div>
+
+  <!-- Signature -->
+  <div class="sig-section">
+    <div class="sig-field">
+      <span class="field-label">Signature:</span>
+      <div class="sig-line">
+        <span class="sig-placeholder">(signature capture not yet implemented)</span>
+      </div>
+    </div>
+    <div class="date-field">
+      <label class="field-label" for="f-date">Date:</label>
+      <input class="field-input" id="f-date" type="text" x-model="profile.date" placeholder="MM/DD/YYYY">
+    </div>
+  </div>
+
+  <div class="footer-note">
+    * Mileage reimbursed at the applicable per-mile rate shown above. Submit completed log to the residency program coordinator by the 5th of the following month.
+  </div>
+
+  <div class="btn-bar">
+    <button class="btn btn-clear" @click="clearTrips()">Clear Trips</button>
+    <button class="btn btn-print" @click="window.print()">Print / Save PDF</button>
+  </div>
+
+</div><!-- end page 2 -->
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

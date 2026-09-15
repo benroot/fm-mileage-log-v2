@@ -177,10 +177,16 @@ in-progress selections is considered low.
 - Only days with a trip selected (not "No Trip") get a printed row —
   naturally bounded at 31 rows regardless of how many trip types exist in
   config.
-- Two-column layout: days 1–15 in the left column, 16–(28/29/30/31) in the
-  right column.
-- Each row: date, trip label. Mileage is intentionally **not** shown here —
-  it already served its sanity-check purpose at selection time.
+- Single-column layout with a header row labeling the two columns "Date"
+  and "Trip" (revised from an earlier two-column 1–15/16–end plan — a
+  single column fits easily within the two-page budget even at 31 rows,
+  and reads more like a normal list).
+- Each row: date (month name + day, e.g. "March 6" — the year appears
+  once, in the preamble, not per row), trip label with mileage appended
+  (e.g. "Chelsea — 34 mi"). An earlier draft of this spec omitted mileage
+  here since it already served its sanity-check purpose at selection
+  time; that was revised — mileage is shown on both the entry dropdown
+  and the printed itemized row.
 - Verify actual print fit at a worst-case month (every day filled) during
   implementation.
 
