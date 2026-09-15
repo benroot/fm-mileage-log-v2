@@ -62,6 +62,41 @@ patterns this project is extending, not just historical context.
   HTML file (or serve it statically) and it works. No package manager, no
   bundler.
 
+## Development status / roadmap
+
+Built so far (in this order):
+
+1. Scaffold — `mileage-log.html` / `styles.css` / `app.js` / vendored
+   Alpine, two-page structure, design tokens, system fonts.
+2. Entry UI (page 1) — per-day `<select>` list, leap-year-aware day count,
+   print-only single-column itemized list (date + trip label incl.
+   mileage), page-2 summary + grand total.
+3. Persistence — single `localStorage` blob (`fm_mileage_log_v2`) holding
+   `profile` + `period` + `trips`, autosaved via one Alpine `$watch`.
+
+Trip types and rates are still the `TEMP STUB CONFIG` at the top of
+`app.js` — not yet wired to real Google Sheets CSVs.
+
+Next phases, in this order:
+
+4. **Signature capture** — carry forward v1's upload + draw-canvas
+   patterns (see `reference/app.js`'s Signature section) into the Alpine
+   component; replace the page-2 placeholder currently in
+   `mileage-log.html`. Signature is a profile-style field (persists
+   globally, no clear button — see Persistence below) and needs the
+   upload-image fallback preserved as the accessible alternative to
+   canvas drawing (see Accessibility below).
+5. **Google Sheets config fetch** — replace `STUB_TRIPS`/`STUB_RATES` with
+   the real fetch-on-load described in the Config section below:
+   published-CSV fetch, `localStorage` cache + "config last checked"
+   timestamp, fetch-failure fallback to cached config, and the required
+   visible (not silent) fallback when a stored trip's hash no longer
+   matches current config.
+6. **Undo/redo** — deliberately deferred past signature + config for now.
+   sessionStorage stack, same pattern as v1 (`pushUndo`/`undo`/`redo`,
+   `UNDO_LIMIT`), once the rest of the state shape (incl. signature) has
+   settled.
+
 ## Architecture
 
 Static files — no server, no build step:
