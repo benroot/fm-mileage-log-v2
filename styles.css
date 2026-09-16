@@ -35,12 +35,24 @@ body {
   padding: 20px;
 }
 
+/* Screen: a fluid card capped at the print page width, not a fixed-width
+   sheet — shrinks to fit a phone instead of overflowing it. The @media
+   print block below overrides all of this back to a real, fixed page. */
 .page {
-  width: var(--page-width);
+  width: 100%;
+  max-width: var(--page-width);
   margin: 0 auto 30px;
   background: white;
   box-shadow: 0 4px 24px rgba(0,0,0,0.18);
   padding: 0.45in 0.45in 0.4in;
+}
+
+@media (max-width: 640px) {
+  body { padding: 10px; }
+  .page {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+    padding: 16px 14px;
+  }
 }
 
 /* ── HEADER ── */
@@ -75,6 +87,7 @@ body {
 }
 .preamble-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: baseline;
   margin-bottom: var(--space-3);
@@ -85,6 +98,13 @@ body {
   align-items: baseline;
   gap: var(--space-3);
   flex: 1;
+}
+.field-group-narrow { max-width: 240px; }
+
+/* Small screens: one field per line rather than a cramped multi-field row. */
+@media (max-width: 640px) {
+  .preamble-row { flex-direction: column; align-items: stretch; gap: var(--space-2); }
+  .field-group-narrow { max-width: none; }
 }
 .field-label {
   font-weight: 700;
@@ -140,8 +160,22 @@ body {
 
 /* ── ENTRY TABLE (screen) ── */
 .entry-wrapper { max-height: none; }
+/* Two side-by-side day-tables on wide screens; stacked (still in correct
+   day order — see entryColumns in app.js) on narrow ones. */
+.entry-columns {
+  display: flex;
+  gap: var(--space-5);
+}
+@media (max-width: 640px) {
+  .entry-columns { flex-direction: column; gap: 0; }
+  /* Stacked into one visual list — only the first table's header should
+     show, not a repeated "Day/Trip" row between the two halves. */
+  .entry-columns table.entry-table:not(:first-child) thead { display: none; }
+}
 table.entry-table {
   width: 100%;
+  flex: 1;
+  min-width: 0;
   border-collapse: collapse;
   font-size: var(--fs-small);
 }

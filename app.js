@@ -154,6 +154,16 @@ function mileageLog() {
       return Array.from({ length: count }, (_, i) => i + 1);
     },
 
+    // Entry table split into two day-columns (first half / second half, not
+    // interleaved) so the same markup reads correctly in day order whether
+    // shown side-by-side (desktop) or stacked (narrow screens) — layout is a
+    // pure CSS concern, see .entry-columns in styles.css.
+    get entryColumns() {
+      const days = this.daysInMonth;
+      const half = Math.ceil(days.length / 2);
+      return [days.slice(0, half), days.slice(half)];
+    },
+
     get monthNames() { return MONTH_NAMES; },
 
     get currentRate() {

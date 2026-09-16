@@ -33,7 +33,7 @@
         <label class="field-label" for="f-name">Name:</label>
         <input class="field-input" id="f-name" type="text" x-model="profile.name" placeholder="Full name">
       </div>
-      <div class="field-group" style="max-width:220px">
+      <div class="field-group field-group-narrow">
         <label class="field-label" for="f-empid">Employee ID#:</label>
         <input class="field-input" id="f-empid" type="text" x-model="profile.empid" placeholder="ID">
       </div>
@@ -44,8 +44,8 @@
         <input class="field-input" id="f-addr" type="text" x-model="profile.addr" placeholder="City / Zip">
       </div>
     </div>
-    <div class="preamble-row" style="flex-wrap:wrap; gap:8px;">
-      <div class="field-group" style="max-width:240px">
+    <div class="preamble-row">
+      <div class="field-group field-group-narrow">
         <label class="field-label" for="f-rotation">Rotation:</label>
         <input class="field-input" id="f-rotation" type="text" x-model="profile.rotation" placeholder="Rotation">
       </div>
@@ -74,35 +74,43 @@
 
   <div class="config-status" x-text="configStatusText"></div>
 
-  <!-- Trip entry — one select per day (screen only; print shows the itemized list below instead) -->
+  <!-- Trip entry — one select per day (screen only; print shows the itemized
+       list below instead). Split into two side-by-side tables on wide
+       screens; the same split just stacks (still in correct day order,
+       since it's a first-half/second-half split, not interleaved) on
+       narrow screens — see .entry-columns media query in styles.css. -->
   <div class="entry-wrapper screen-only">
-    <table class="entry-table">
-      <thead>
-        <tr><th>Day</th><th>Trip</th></tr>
-      </thead>
-      <tbody>
-        <template x-for="day in daysInMonth" :key="day">
-          <tr :class="{ 'has-trip': trips[day] }">
-            <td class="day-num" x-text="weekdayFor(day) + ' ' + day"></td>
-            <td>
-              <select class="trip-select"
-                      :id="'trip-' + day"
-                      :aria-label="'Trip for ' + monthNames[period.month] + ' ' + day"
-                      x-model="trips[day]"
-                      @change="onTripChange(day)">
-                <option value="">No Trip</option>
-                <template x-for="opt in tripOptions" :key="opt.hash">
-                  <option :value="opt.hash" x-text="opt.label + ' — ' + opt.miles + ' mi'"></option>
-                </template>
-              </select>
-              <div class="trip-reset-notice" x-show="resetNotices[day]">
-                Previous selection no longer available — reset to No Trip
-              </div>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+    <div class="entry-columns">
+      <template x-for="(col, colIndex) in entryColumns" :key="colIndex">
+        <table class="entry-table">
+          <thead>
+            <tr><th>Day</th><th>Trip</th></tr>
+          </thead>
+          <tbody>
+            <template x-for="day in col" :key="day">
+              <tr :class="{ 'has-trip': trips[day] }">
+                <td class="day-num" x-text="weekdayFor(day) + ' ' + day"></td>
+                <td>
+                  <select class="trip-select"
+                          :id="'trip-' + day"
+                          :aria-label="'Trip for ' + monthNames[period.month] + ' ' + day"
+                          x-model="trips[day]"
+                          @change="onTripChange(day)">
+                    <option value="">No Trip</option>
+                    <template x-for="opt in tripOptions" :key="opt.hash">
+                      <option :value="opt.hash" x-text="opt.label + ' — ' + opt.miles + ' mi'"></option>
+                    </template>
+                  </select>
+                  <div class="trip-reset-notice" x-show="resetNotices[day]">
+                    Previous selection no longer available — reset to No Trip
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+    </div>
   </div>
 
   <!-- Itemized trip list — print only; only days with a trip selected. Each
