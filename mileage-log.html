@@ -160,9 +160,51 @@
   <!-- Signature -->
   <div class="sig-section">
     <div class="sig-field">
-      <span class="field-label">Signature:</span>
-      <div class="sig-line">
-        <span class="sig-placeholder">(signature capture not yet implemented)</span>
+      <div class="sig-field-head">
+        <span class="field-label" id="sig-label">Signature:</span>
+        <div class="sig-mode-toggle screen-only" role="group" aria-label="Signature input method">
+          <button type="button" class="sig-mode-btn" :class="{ active: sigMode === 'upload' }"
+                  :aria-pressed="sigMode === 'upload'" @click="setSigMode('upload')">Upload</button>
+          <button type="button" class="sig-mode-btn" :class="{ active: sigMode === 'draw' }"
+                  :aria-pressed="sigMode === 'draw'" @click="setSigMode('draw')">Draw</button>
+        </div>
+      </div>
+
+      <!-- Current saved signature — always visible on screen, separate from the action controls below -->
+      <div class="sig-line screen-only" x-show="profile.signature">
+        <img class="sig-img" :src="profile.signature" alt="Current saved signature">
+      </div>
+
+      <!-- Upload mode -->
+      <div class="screen-only" x-show="sigMode === 'upload'">
+        <button type="button" class="sig-draw-btn primary" @click="$refs.sigFileInput.click()">
+          <span x-text="profile.signature && profile.sigSource === 'upload' ? 'Replace signature image…' : 'Choose signature image…'"></span>
+        </button>
+        <input type="file" accept="image/*" class="sig-file-input" x-ref="sigFileInput" @change="onSignatureFile($event)">
+      </div>
+
+      <!-- Draw mode -->
+      <div class="sig-draw-wrap screen-only" x-show="sigMode === 'draw'">
+        <div x-show="!drawEditing">
+          <p class="sig-draw-note">Showing your saved drawn signature above.</p>
+          <button type="button" class="sig-draw-btn primary" @click="startRedraw()">Redraw Signature</button>
+        </div>
+        <div x-show="drawEditing">
+          <div class="sig-canvas-container">
+            <canvas class="sig-canvas" x-ref="sigCanvas" aria-hidden="true"></canvas>
+            <span class="sig-canvas-hint" x-show="!hasStrokes">Sign here…</span>
+          </div>
+          <div class="sig-draw-toolbar">
+            <button type="button" class="sig-draw-btn primary" @click="saveDrawnSignature()">Use Signature</button>
+            <button type="button" class="sig-draw-btn" @click="clearCanvas()">Clear Drawing</button>
+          </div>
+          <p class="sig-draw-note">Drawing requires a mouse or touchscreen. Use Upload for a keyboard- and screen-reader-accessible option.</p>
+        </div>
+      </div>
+
+      <!-- Print rendering — always reflects the saved signature, regardless of on-screen mode -->
+      <div class="sig-line print-only">
+        <img class="sig-img" x-show="profile.signature" :src="profile.signature" alt="">
       </div>
     </div>
     <div class="date-field">

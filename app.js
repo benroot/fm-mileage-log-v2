@@ -44,9 +44,21 @@ function mileageLog() {
     configStatusText: 'Using temporary stub trip/rate data — Google Sheets config not yet connected.',
 
     // ── Profile (persists globally; not month/year-scoped) ──
+    // sigSource records which method ('upload'|'draw') produced the current
+    // signature, so the capture UI can default to that method and — for a
+    // drawn signature — avoid silently wiping it when the Draw tab reopens.
     profile: {
-      name: '', empid: '', addr: '', rotation: '', date: ''
+      name: '', empid: '', addr: '', rotation: '', date: '', signature: null, sigSource: null
     },
+
+    // ── Signature capture UI state — ephemeral, not persisted ──
+    sigMode: 'upload', // 'upload' | 'draw'
+    drawEditing: true, // false = showing the saved drawn signature "locked"; must click Redraw to edit
+    canvasReady: false,
+    isDrawing: false,
+    hasStrokes: false,
+    lastX: 0,
+    lastY: 0,
 
     // ── Period — controls how many day-rows display ──
     period: {
@@ -131,6 +143,125 @@ function mileageLog() {
       this.resetNotices = {};
     },
 
+    // ── Signature capture — profile-style field, no clear button (see CLAUDE.md).
+    // Re-uploading or re-drawing overwrites the stored signature. ──
+    setSigMode(mode) {
+      this.sigMode = mode;
+      if (mode !== 'draw') return;
+      // Re-entering Draw always re-locks onto the last saved drawn signature
+      // (if any) rather than resuming a stale in-progress canvas.
+      if (this.profile.signature && this.profile.sigSource === 'draw') {
+        this.drawEditing = false;
+      } else {
+        this.enterDrawEditing();
+      }
+    },
+
+    enterDrawEditing() {
+      this.drawEditing = true;
+      this.$nextTick(() => {
+        if (this.canvasReady) this.clearCanvas();
+        else this.initCanvas();
+      });
+    },
+
+    startRedraw() {
+      if (!confirm('This will clear your saved signature so you can draw a new one. Continue?')) return;
+      this.enterDrawEditing();
+    },
+
+    onSignatureFile(e) {
+      const file = e.target.files[0];
+      e.target.value = ''; // allow re-selecting the same file later
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          // Downsample to a small canvas so the stored data URL stays compact.
+          const maxW = 280, maxH = 38, scale = 3;
+          const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+          const dispW = Math.round(img.width * ratio);
+          const dispH = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = dispW * scale;
+          canvas.height = dispH * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          this.profile.signature = canvas.toDataURL('image/png');
+          this.profile.sigSource = 'upload';
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
+
+    initCanvas() {
+      if (this.canvasReady) return;
+      const canvas = this.$refs.sigCanvas;
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * 2; // 2x for retina
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      this.canvasReady = true;
+
+      const getPos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - r.left, y: src.clientY - r.top };
+      };
+      const startDraw = (e) => {
+        e.preventDefault();
+        this.isDrawing = true;
+        const p = getPos(e);
+        this.lastX = p.x; this.lastY = p.y;
+        ctx.beginPath();
+        ctx.moveTo(this.lastX, this.lastY);
+      };
+      const draw = (e) => {
+        e.preventDefault();
+        if (!this.isDrawing) return;
+        const p = getPos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        this.lastX = p.x; this.lastY = p.y;
+        this.hasStrokes = true;
+      };
+      const endDraw = () => { this.isDrawing = false; };
+
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', endDraw);
+      canvas.addEventListener('mouseleave', endDraw);
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      canvas.addEventListener('touchend', endDraw);
+    },
+
+    clearCanvas() {
+      if (!this.canvasReady) return;
+      const canvas = this.$refs.sigCanvas;
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      this.hasStrokes = false;
+    },
+
+    saveDrawnSignature() {
+      if (!this.canvasReady || !this.hasStrokes) {
+        alert('Please draw your signature first.');
+        return;
+      }
+      this.profile.signature = this.$refs.sigCanvas.toDataURL('image/png');
+      this.profile.sigSource = 'draw';
+      this.drawEditing = false; // lock — require Redraw to edit again
+    },
+
     saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -151,6 +282,13 @@ function mileageLog() {
       if (!this.profile.date) {
         const today = new Date();
         this.profile.date = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+      }
+
+      // Default the signature tab to whichever method last produced the
+      // saved signature; a drawn one starts locked (see setSigMode).
+      if (this.profile.signature && this.profile.sigSource === 'draw') {
+        this.sigMode = 'draw';
+        this.drawEditing = false;
       }
 
       // Restoring trips is deferred to $nextTick: each day's <select> options

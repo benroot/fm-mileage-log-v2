@@ -278,16 +278,87 @@ table.entry-table td.day-num {
   border-top: 1px solid var(--border);
 }
 .sig-field { flex: 2; }
-.sig-field .field-label { display: block; margin-bottom: var(--space-1); }
+.sig-field-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
 .sig-line {
   border-bottom: 1.5px solid var(--text);
   min-height: 40px; width: 100%;
   display: flex; align-items: flex-end;
+  margin-bottom: var(--space-3);
 }
-.sig-placeholder {
-  font-size: var(--fs-xsmall); color: var(--muted); font-style: italic;
-  padding-bottom: 3px;
+.sig-img {
+  max-height: 38px; max-width: 100%;
+  object-fit: contain; object-position: left bottom;
+  display: block;
 }
+
+/* ── Signature mode toggle ── */
+.sig-mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sig-mode-btn {
+  min-height: 24px;
+  padding: 2px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  border: none;
+  background: white;
+  color: var(--navy);
+  cursor: pointer;
+}
+.sig-mode-btn.active { background: var(--navy); color: white; }
+.sig-mode-btn:not(.active):hover { background: var(--light-blue); }
+.sig-mode-btn:focus-visible { outline: 2px solid var(--mid); outline-offset: 1px; }
+
+/* ── Signature — draw mode ── */
+.sig-draw-wrap { display: flex; flex-direction: column; gap: var(--space-3); }
+.sig-canvas-container {
+  position: relative;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  background: white;
+  overflow: hidden;
+  cursor: crosshair;
+}
+.sig-canvas { display: block; width: 100%; height: 80px; touch-action: none; }
+.sig-canvas-hint {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--fs-small); color: var(--border); font-style: italic;
+  pointer-events: none; user-select: none;
+}
+.sig-draw-toolbar { display: flex; gap: var(--space-4); align-items: center; }
+.sig-draw-btn {
+  min-height: 24px;
+  padding: 2px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: white;
+  color: var(--navy);
+  cursor: pointer;
+}
+.sig-draw-btn:hover { background: var(--light-blue); }
+.sig-draw-btn:focus-visible { outline: 2px solid var(--mid); outline-offset: 1px; }
+.sig-draw-btn.primary { background: var(--navy); color: white; border-color: var(--navy); }
+.sig-draw-btn.primary:hover { opacity: 0.85; }
+.sig-draw-note {
+  font-size: var(--fs-xsmall);
+  color: var(--muted);
+  font-style: italic;
+}
+.sig-file-input { display: none; }
+
 .date-field { flex: 1; display: flex; align-items: center; gap: var(--space-3); }
 
 .footer-note {
@@ -352,6 +423,7 @@ table.entry-table td.day-num {
     display: flex;
     flex-direction: column;
   }
+  .print-only.sig-line { display: flex; }
 
   /* Grayscale-friendly print colours — no large dark fills */
   .preamble { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
