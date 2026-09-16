@@ -2,13 +2,13 @@
 
 A single-page web tool for tracking and printing mileage reimbursement for the University of Michigan Family Medicine Residency Program.
 
-**[Open the Mileage Log](index.html)** · **[View source on GitHub](https://github.com/benroot/fm-mileage-log-v2)**
+**[Open the Mileage Log](mileage-log.html)** · **[View source on GitHub](https://github.com/benroot/fm-mileage-log-v2)**
 
 ---
 
 ## How to Use
 
-1. Open `index.html` in your browser, or visit the hosted GitHub Pages link.
+1. Open `mileage-log.html` in your browser, or visit the hosted GitHub Pages link.
 2. Fill in your name, employee ID, address, rotation, and month/year in the header fields.
 3. For each day you traveled, pick the trip from that day's dropdown — pick **No Trip** (the default) for days you didn't travel.
 4. Add your signature by uploading an image or drawing directly in the browser.

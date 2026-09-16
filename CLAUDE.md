@@ -75,7 +75,7 @@ patterns this project is extending, not just historical context.
 
 Built so far (in this order):
 
-1. Scaffold — `index.html` / `styles.css` / `app.js` / vendored
+1. Scaffold — `mileage-log.html` / `styles.css` / `app.js` / vendored
    Alpine, design tokens, system fonts. (Originally a two-page structure;
    since consolidated to one page — see "Print output" below.)
 2. Entry UI — per-day `<select>` list, leap-year-aware day count,
@@ -108,10 +108,12 @@ Next phase:
 
 Static files — no server, no build step:
 
-- `index.html` — markup: a single `.page` div (screen: one continuous
-  scrolling page; print: one physical sheet — see "Print output" below).
-  Named `index.html`, not `mileage-log.html` like v1, so it loads
-  automatically at the GitHub Pages root URL.
+- `mileage-log.html` — markup: a single `.page` div (screen: one
+  continuous scrolling page; print: one physical sheet — see "Print
+  output" below). Not named `index.html` — briefly was, to load
+  automatically at the GitHub Pages root URL, but was renamed back. The
+  Pages root URL will 404 unless/until an `index.html` (e.g. a small
+  redirect) is added back alongside it.
 - `styles.css` — screen styles + `@media print` overrides.
 - `app.js` — Alpine.js component logic and app state.
 - `vendor/alpine.min.js` — vendored Alpine.js (no CDN).
