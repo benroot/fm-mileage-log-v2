@@ -102,7 +102,24 @@ function mileageLog() {
         if (!opt) continue;
         rows.push({ day, dateLabel: `${monthName} ${day}`, label: `${opt.label} — ${opt.miles} mi` });
       }
+      // Numbered so the last row's number can be checked against the
+      // summary's trip counts for a quick accuracy cross-check.
+      rows.forEach((row, i) => { row.num = i + 1; });
       return rows;
+    },
+
+    // Past this many rows, a single column runs long enough that printing
+    // needs two columns to keep the itemized list on one page.
+    get itemizedTwoColumn() {
+      return this.itemizedTrips.length > 10;
+    },
+
+    // Two-column print layout: each column gets its own "Date/Trip" header,
+    // so the numbering split just carries straight through (not restarted).
+    get itemizedColumns() {
+      const rows = this.itemizedTrips;
+      const half = Math.ceil(rows.length / 2);
+      return [rows.slice(0, half), rows.slice(half)];
     },
 
     get summaryRows() {
@@ -132,9 +149,8 @@ function mileageLog() {
       return this.summaryRows.reduce((sum, r) => sum + r.amount, 0);
     },
 
-    get p2Subtitle() {
-      const monthLabel = `${MONTH_NAMES[this.period.month]} ${this.period.year}`;
-      return this.profile.name ? `${this.profile.name} — ${monthLabel}` : monthLabel;
+    get totalMiles() {
+      return this.summaryRows.reduce((sum, r) => sum + r.count * r.miles, 0);
     },
 
     clearTrips() {

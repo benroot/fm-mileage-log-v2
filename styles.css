@@ -192,12 +192,30 @@ table.entry-table td.day-num {
   display: none;
   flex-direction: column;
 }
+/* Two-column print layout (row-direction override lives in @media print,
+   below the base .print-only.itemized-wrapper rule, so it isn't clobbered
+   by source order at equal specificity): two side-by-side sub-lists, each
+   with its own repeated header — see .itemized-col and itemizedColumns in app.js. */
+.itemized-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .itemized-row {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: 2px 0;
   border-bottom: 1px solid #e2e6f0;
   font-size: var(--fs-small);
+  break-inside: avoid;
+}
+.itemized-num {
+  font-weight: 700;
+  color: var(--navy);
+  width: 16px;
+  flex-shrink: 0;
+  text-align: right;
 }
 .itemized-day {
   font-weight: 700;
@@ -210,6 +228,7 @@ table.entry-table td.day-num {
   padding-bottom: 3px;
   margin-bottom: 1px;
 }
+.itemized-header .itemized-num,
 .itemized-header .itemized-day,
 .itemized-header .itemized-label {
   font-weight: 700;
@@ -422,6 +441,11 @@ table.entry-table td.day-num {
   .print-only.itemized-wrapper {
     display: flex;
     flex-direction: column;
+  }
+  .print-only.itemized-wrapper.two-col {
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
   }
   .print-only.sig-line { display: flex; }
 

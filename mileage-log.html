@@ -12,7 +12,10 @@
 <div x-data="mileageLog()" x-init="init()">
 
 <!-- ═══════════════════════════════════════════
-     PAGE 1 — Header + Preamble + Trip Entry
+     Header + Preamble + Trip Entry + Summary + Signature
+     (one continuous page on screen; print CSS keeps it to one
+     physical sheet, switching the itemized list to two columns
+     when there are enough trips to need it)
 ═══════════════════════════════════════════ -->
 <div class="page" id="page1">
 
@@ -102,33 +105,46 @@
     </table>
   </div>
 
-  <!-- Itemized trip list — print only; only days with a trip selected, single column -->
-  <div class="itemized-wrapper print-only">
-    <div class="itemized-row itemized-header">
-      <span class="itemized-day">Date</span>
-      <span class="itemized-label">Trip</span>
-    </div>
-    <template x-for="row in itemizedTrips" :key="row.day">
-      <div class="itemized-row">
-        <span class="itemized-day" x-text="row.dateLabel"></span>
-        <span class="itemized-label" x-text="row.label"></span>
+  <!-- Itemized trip list — print only; only days with a trip selected. Each
+       row is numbered (running count, not per-column) so the last number can
+       be checked against the summary's trip counts. Single column normally;
+       switches to two columns — each with its own repeated header — once
+       there are enough rows that two columns keep it to one page. -->
+  <div class="itemized-wrapper print-only" :class="{ 'two-col': itemizedTwoColumn }">
+    <template x-if="!itemizedTwoColumn">
+      <div class="itemized-col">
+        <div class="itemized-row itemized-header">
+          <span class="itemized-num">#</span>
+          <span class="itemized-day">Date</span>
+          <span class="itemized-label">Trip</span>
+        </div>
+        <template x-for="row in itemizedTrips" :key="row.day">
+          <div class="itemized-row">
+            <span class="itemized-num" x-text="row.num"></span>
+            <span class="itemized-day" x-text="row.dateLabel"></span>
+            <span class="itemized-label" x-text="row.label"></span>
+          </div>
+        </template>
       </div>
     </template>
-  </div>
-
-</div><!-- end page 1 -->
-
-
-<!-- ═══════════════════════════════════════════
-     PAGE 2 — Summary + Signature
-═══════════════════════════════════════════ -->
-<div class="page" id="page2">
-
-  <div class="doc-header">
-    <div>
-      <h1>Mileage Reimbursement Log</h1>
-      <div class="subtitle" x-text="p2Subtitle"></div>
-    </div>
+    <template x-if="itemizedTwoColumn">
+      <template x-for="(col, colIndex) in itemizedColumns" :key="colIndex">
+        <div class="itemized-col">
+          <div class="itemized-row itemized-header">
+            <span class="itemized-num">#</span>
+            <span class="itemized-day">Date</span>
+            <span class="itemized-label">Trip</span>
+          </div>
+          <template x-for="row in col" :key="row.day">
+            <div class="itemized-row">
+              <span class="itemized-num" x-text="row.num"></span>
+              <span class="itemized-day" x-text="row.dateLabel"></span>
+              <span class="itemized-label" x-text="row.label"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </template>
   </div>
 
   <!-- Summary -->
@@ -145,7 +161,7 @@
         </div>
       </template>
       <div class="sum-total-row">
-        <span class="sum-total-label">Total Reimbursement</span>
+        <span class="sum-total-label" x-text="'Total Reimbursement (' + itemizedTrips.length + ' trip' + (itemizedTrips.length !== 1 ? 's' : '') + ', ' + totalMiles + ' mi)'"></span>
         <span class="sum-total-amount" x-text="'$' + grandTotal.toFixed(2)"></span>
       </div>
     </div>
@@ -222,7 +238,7 @@
     <button class="btn btn-print" @click="window.print()">Print / Save PDF</button>
   </div>
 
-</div><!-- end page 2 -->
+</div><!-- end page -->
 
 </div>
 
