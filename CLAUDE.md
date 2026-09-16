@@ -185,14 +185,22 @@ file into browser-loaded JS at runtime.
 
 - Fetch both CSVs on page load only (no polling, no manual refresh
   button).
+- While `loadConfig()` is in flight, a `.loading-overlay` (`configLoading`,
+  screen-only) covers the form so nothing partially-loaded — an empty trip
+  dropdown, a placeholder `$0.000` rate — is ever visible or interactive.
+  Lifted in a `finally` block, so it comes down whether loading ends in
+  success, a cache fallback, or no data at all.
 - On fetch failure: fall back to the last successfully fetched config
   cached in `localStorage`, rather than hard-failing. Surface this state to
   the user (e.g. "using cached config from [time]") rather than failing
-  silently.
-- On fetch success: cache the result to `localStorage` and display a
-  "config last checked: [timestamp]" note in the UI. This is the **last
-  successful fetch time**, not the sheet's true last-edited time — a plain
-  published CSV response doesn't carry a reliable edit timestamp.
+  silently — `configStatusText`, shown screen-only via `.config-status`
+  (never printed).
+- On fetch success: cache the result to `localStorage`, silently —
+  `configStatusText` is cleared and `.config-status` (`x-show`) disappears.
+  Only failures/fallbacks are surfaced; the routine happy path doesn't need
+  a "config last checked" note cluttering the entry screen. The last
+  successful fetch time is still captured in the `localStorage` cache
+  itself (`fetchedAt`), just not displayed on a successful load.
 - Document in admin-facing instructions (README, not this file) that
   "Automatically republish when changes are made" must stay checked in the
   Sheet's Publish to web settings.

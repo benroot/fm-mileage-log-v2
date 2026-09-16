@@ -120,7 +120,13 @@ function mileageLog() {
     // admin actually configures the Sheet (see CLAUDE.md "Config"). ──
     tripOptions: [],
     rates: [],
-    configStatusText: 'Loading trip/rate config…',
+    // Empty while loading — only failure/fallback states get a message
+    // (see loadConfig); the routine loading/success path is silent.
+    configStatusText: '',
+    // Blocks the form behind a loading overlay until loadConfig() settles
+    // (success, cache fallback, or no-data), so nothing partially-loaded —
+    // an empty trip list, a placeholder rate — is ever visible or usable.
+    configLoading: true,
 
     // ── Profile (persists globally; not month/year-scoped) ──
     // sigSource records which method ('upload'|'draw') produced the current
@@ -280,7 +286,9 @@ function mileageLog() {
         } catch (e) { /* localStorage unavailable/full — cache write silently skipped */ }
 
         this.applyFetchedConfig(trips, rates);
-        this.configStatusText = `Config last checked: ${fetchedAt.toLocaleString()}`;
+        // Success is quiet — no status line — since CLAUDE.md only requires
+        // *failures* to be surfaced, not the routine happy path.
+        this.configStatusText = '';
       } catch (err) {
         let cached;
         try { cached = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY)); } catch (e) {}
@@ -290,6 +298,10 @@ function mileageLog() {
         } else {
           this.configStatusText = 'Could not load trip/rate config and no cached copy is available — no trip types or rate loaded. Check your connection and reload.';
         }
+      } finally {
+        // Loading is "done" either way — success, cache fallback, or no
+        // data at all — so the overlay always lifts once loadConfig settles.
+        this.configLoading = false;
       }
     },
 
