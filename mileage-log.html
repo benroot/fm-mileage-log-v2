@@ -67,7 +67,7 @@
         </select>
         <label class="field-label" for="f-year">Year:</label>
         <input class="field-input year-input" id="f-year" type="number" x-model.number="period.year" min="2020" max="2100">
-        <span class="rate-badge" x-text="'Rate: $' + currentRate.toFixed(3) + '/mi'"></span>
+        <span class="rate-badge" x-text="rates.length ? ('Rate: $' + currentRate.toFixed(3) + '/mi') : 'Rate: not yet loaded'"></span>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@
       </thead>
       <tbody>
         <template x-for="day in daysInMonth" :key="day">
-          <tr>
+          <tr :class="{ 'has-trip': trips[day] }">
             <td class="day-num" x-text="weekdayFor(day) + ' ' + day"></td>
             <td>
               <select class="trip-select"

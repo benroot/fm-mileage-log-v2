@@ -161,6 +161,15 @@ table.entry-table td {
   vertical-align: middle;
 }
 table.entry-table tr:nth-child(even) td { background: #f7f8fc; }
+/* A day with a trip selected is the exception, not the norm, across a
+   month — highlight it rather than dimming the (more common) No Trip
+   rows, so the table doesn't read as washed-out overall. */
+table.entry-table tr.has-trip td { background: var(--light-blue); }
+table.entry-table tr.has-trip td.day-num { font-weight: 800; }
+table.entry-table tr.has-trip .trip-select {
+  font-weight: 700;
+  border-color: var(--mid);
+}
 table.entry-table td.day-num {
   font-weight: 700;
   color: var(--navy);

@@ -76,41 +76,41 @@ patterns this project is extending, not just historical context.
 Built so far (in this order):
 
 1. Scaffold — `mileage-log.html` / `styles.css` / `app.js` / vendored
-   Alpine, two-page structure, design tokens, system fonts.
-2. Entry UI (page 1) — per-day `<select>` list, leap-year-aware day count,
-   print-only single-column itemized list (date + trip label incl.
-   mileage), page-2 summary + grand total.
+   Alpine, design tokens, system fonts. (Originally a two-page structure;
+   since consolidated to one page — see "Print output" below.)
+2. Entry UI — per-day `<select>` list, leap-year-aware day count,
+   print-only itemized list (date + trip label), summary + grand total.
 3. Persistence — single `localStorage` blob (`fm_mileage_log_v2`) holding
    `profile` + `period` + `trips`, autosaved via one Alpine `$watch`.
+4. Signature capture — upload + draw-canvas patterns carried forward from
+   v1 into the Alpine component (see Persistence below for the
+   no-clear-button, last-method-used-wins design).
+5. Google Sheets config fetch — published-CSV fetch on page load,
+   `localStorage` cache + "config last checked" timestamp, fetch-failure
+   fallback to cached config, and the required visible (not silent)
+   fallback when a stored trip's hash no longer matches current config
+   (see "Config" below). **No hardcoded stub trip/rate data** — an early
+   `TEMP STUB CONFIG` was used to build the entry UI before this phase,
+   but was removed once the real fetch existed: a fake placeholder trip
+   list is indistinguishable from real config once rendered, and goes
+   stale the moment an admin actually configures the Sheet. If config
+   fetch fails and there's no cache either (e.g. first-ever load, no
+   network), `tripOptions`/`rates` are simply empty and the UI says so.
 
-Trip types and rates are still the `TEMP STUB CONFIG` at the top of
-`app.js` — not yet wired to real Google Sheets CSVs.
+Next phase:
 
-Next phases, in this order:
-
-4. **Signature capture** — carry forward v1's upload + draw-canvas
-   patterns (see `reference/app.js`'s Signature section) into the Alpine
-   component; replace the page-2 placeholder currently in
-   `mileage-log.html`. Signature is a profile-style field (persists
-   globally, no clear button — see Persistence below) and needs the
-   upload-image fallback preserved as the accessible alternative to
-   canvas drawing (see Accessibility below).
-5. **Google Sheets config fetch** — replace `STUB_TRIPS`/`STUB_RATES` with
-   the real fetch-on-load described in the Config section below:
-   published-CSV fetch, `localStorage` cache + "config last checked"
-   timestamp, fetch-failure fallback to cached config, and the required
-   visible (not silent) fallback when a stored trip's hash no longer
-   matches current config.
-6. **Undo/redo** — deliberately deferred past signature + config for now.
+6. **Undo/redo** — deliberately deferred past signature + config.
    sessionStorage stack, same pattern as v1 (`pushUndo`/`undo`/`redo`,
-   `UNDO_LIMIT`), once the rest of the state shape (incl. signature) has
-   settled.
+   `UNDO_LIMIT`), now that the rest of the state shape (incl. signature)
+   has settled.
 
 ## Architecture
 
 Static files — no server, no build step:
 
-- `mileage-log.html` — markup, `.page` divs for the two printed pages.
+- `mileage-log.html` — markup: a single `.page` div (screen: one
+  continuous scrolling page; print: one physical sheet — see "Print
+  output" below).
 - `styles.css` — screen styles + `@media print` overrides.
 - `app.js` — Alpine.js component logic and app state.
 - `vendor/alpine.min.js` — vendored Alpine.js (no CDN).
@@ -198,8 +198,12 @@ file into browser-loaded JS at runtime.
 Each dropdown `<option>`'s value (and each stored `trips` entry) is derived
 from a hash/composite of that trip's `label` + `miles` as currently
 published in the Trips tab — there is **no separate stable ID column** in
-the config. This was a deliberate choice, made with the tradeoff understood
-and accepted: since trip/rate edits happen rarely (roughly monthly, when
+the config. `hashTrip()` produces a human-readable slug (e.g.
+`chelsea-34mi`), not an opaque digest, specifically so a hash mismatch is
+legible in localStorage/devtools while debugging — which trip it used to
+be is visible at a glance, not just that it changed. This was a deliberate
+choice, made with the tradeoff understood and accepted: since trip/rate
+edits happen rarely (roughly monthly, when
 closing out the prior month) rather than continuously, the risk of a
 cosmetic edit (typo fix, minor mileage correction) silently invalidating
 in-progress selections is considered low.
@@ -345,9 +349,15 @@ being asked.
 ## Things to be careful about when changing code
 
 - The Trips/Rates config is the source of truth for what was hardcoded
-  `TRIPS`/`RATE` in v1 — don't reintroduce hardcoded trip data "for
-  convenience" during development without clearly marking it as a
-  temporary stub.
+  `TRIPS`/`RATE` in v1 — don't reintroduce a hardcoded trip/rate stub "for
+  convenience," even marked clearly, even temporarily. This was tried
+  during early development and deliberately removed: a stub is
+  indistinguishable from real config once rendered, it goes stale the
+  moment the Sheet is actually configured, and it already caused a real
+  bug (a stored trip selection silently failed to restore because its
+  stub-era hash didn't match the real one). If config isn't loaded yet or
+  couldn't be loaded, show that state honestly (empty `tripOptions`/empty
+  `rates`, a clear status message) rather than substituting fake data.
 - Rate lookup is always resolved against the **1st of the selected month**,
   never a specific day within it.
 - Config fetch is the only legitimate network dependency — don't add

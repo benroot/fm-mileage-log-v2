@@ -1,32 +1,10 @@
-// ══════════════════════════════════════════════
-//  LAST-RESORT FALLBACK CONFIG — used only if the Google Sheets fetch fails
-//  AND there's no previously cached config in localStorage (e.g. first-ever
-//  load with no network). See CLAUDE.md "Config" section for the full
-//  fetch/cache/fallback design.
-// ══════════════════════════════════════════════
-const STUB_TRIPS = [
-  { label: "Chelsea", miles: 34 },
-  { label: "Chelsea→Ypsilanti", miles: 54 },
-  { label: "Ypsilanti", miles: 24 },
-  { label: "Dexter", miles: 18 },
-  { label: "Northville", miles: 50 },
-  { label: "Livonia", miles: 56 },
-];
-const STUB_RATES = [
-  { start_date: "2026-01-01", rate: 0.725 },
-  { start_date: "2026-08-01", rate: 0.76 },
-];
-
-// Simple deterministic string hash (FNV-1a) → hex string.
-// Used as trip identity: hash of label+miles, not a stable ID (see CLAUDE.md).
+// Deterministic, human-readable slug of label+miles → trip identity, not a
+// stable ID (see CLAUDE.md). Readable in localStorage/devtools, so a hash
+// mismatch during debugging shows which trip it used to be instead of an
+// opaque hex digest.
 function hashTrip(label, miles) {
-  const str = `${label}|${miles}`;
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16);
+  const slug = String(label).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${slug}-${miles}mi`;
 }
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -136,9 +114,12 @@ function parseRatesCsv(text) {
 
 function mileageLog() {
   return {
-    // ── Config — placeholder until loadConfig() resolves on page load ──
-    tripOptions: STUB_TRIPS.map(t => ({ ...t, hash: hashTrip(t.label, t.miles) })),
-    rates: [...STUB_RATES].sort((a, b) => a.start_date.localeCompare(b.start_date)),
+    // ── Config — empty until loadConfig() resolves on page load. No
+    // hardcoded stub: a fake placeholder trip list would look identical to
+    // real config once rendered, and would silently go stale the moment an
+    // admin actually configures the Sheet (see CLAUDE.md "Config"). ──
+    tripOptions: [],
+    rates: [],
     configStatusText: 'Loading trip/rate config…',
 
     // ── Profile (persists globally; not month/year-scoped) ──
@@ -266,8 +247,8 @@ function mileageLog() {
 
     // ── Config fetch — published Google Sheets CSVs, fetched on page load
     // only (see CLAUDE.md "Config"). Falls back to the last cached config on
-    // failure, and to the built-in STUB config if there's no cache either;
-    // both fallbacks are surfaced in configStatusText, never silent. ──
+    // failure; if there's no cache either, tripOptions/rates simply stay
+    // empty. Both states are surfaced in configStatusText, never silent. ──
     async loadConfig() {
       try {
         const configRes = await fetch('config.json');
@@ -297,7 +278,7 @@ function mileageLog() {
           this.applyFetchedConfig(cached.trips, cached.rates);
           this.configStatusText = `Could not reach Google Sheets — using cached config from ${new Date(cached.fetchedAt).toLocaleString()}.`;
         } else {
-          this.configStatusText = 'Could not load trip/rate config and no cached copy is available — using built-in placeholder data. Check your connection and reload.';
+          this.configStatusText = 'Could not load trip/rate config and no cached copy is available — no trip types or rate loaded. Check your connection and reload.';
         }
       }
     },
@@ -471,17 +452,24 @@ function mileageLog() {
         this.drawEditing = false;
       }
 
-      // Restoring trips is deferred to $nextTick: each day's <select> options
-      // are populated by a nested x-for, so assigning trips synchronously here
-      // (before those options exist in the DOM) would leave the <select>
-      // showing "No Trip" even though the underlying data is correct. Assigning
-      // after mount makes the reactive write happen once options already exist,
-      // so x-model's DOM sync finds the matching option.
-      this.$nextTick(() => {
+      // Restoring trips must wait for loadConfig() to fully resolve (fetch,
+      // cache, or stub fallback) and for that config's <option> elements to
+      // actually render, not just for the initial mount. If trips were
+      // restored against the transient placeholder config instead, the
+      // <select> would try to match a stored hash against placeholder
+      // options, fail to find one, and default to showing "No Trip" —
+      // even though trips[day] itself is still correct — because Alpine's
+      // x-model doesn't retroactively re-sync a <select> just because its
+      // sibling <option>s changed later for an unrelated reason. (This is
+      // what made a trip like "Chelsea & Ypsi" appear to revert to "No
+      // Trip" after a refresh while "Chelsea" alone didn't: "Chelsea"
+      // happens to hash identically in both the placeholder and real
+      // config, masking the race.)
+      this.$nextTick(async () => {
+        await this.loadConfig();
+        await new Promise(resolve => this.$nextTick(resolve));
         if (saved && saved.trips) Object.assign(this.trips, saved.trips);
-        // Trips must be restored before loadConfig() resolves, so its hash
-        // reconciliation checks the real list rather than an empty one.
-        this.loadConfig();
+        this.reconcileTripsAgainstConfig();
       });
 
       this.$watch(
