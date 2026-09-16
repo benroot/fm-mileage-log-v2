@@ -158,6 +158,16 @@ One Google Sheet, two tabs, each published to web separately:
   chronological. Only one rate is ever "in play" per submission (forms are
   always monthly).
 
+### Where the CSV URLs live
+
+The two published-CSV URLs are not hardcoded in `app.js` — they live in
+`config.json` at the repo root, fetched alongside the Trips/Rates CSVs on
+page load. This keeps the URLs editable via GitHub's web editor without
+touching JS, and gives one obvious place to look when the Sheet is
+recreated or re-published. `config.json` is plain JSON (not `.env`) because
+this is a buildless static site — there's no bundler to inject a `.env`
+file into browser-loaded JS at runtime.
+
 ### Fetch behavior
 
 - Fetch both CSVs on page load only (no polling, no manual refresh

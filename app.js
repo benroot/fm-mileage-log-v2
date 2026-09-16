@@ -1,9 +1,8 @@
 // ══════════════════════════════════════════════
-//  TEMP STUB CONFIG — placeholder only.
-//  Real config comes from published Google Sheets CSVs (Trips tab,
-//  Rates tab) fetched on page load. Not wired up yet — this stub exists
-//  so the entry UI / print layout can be built and reviewed first.
-//  See CLAUDE.md "Config" section for the real fetch/cache/fallback design.
+//  LAST-RESORT FALLBACK CONFIG — used only if the Google Sheets fetch fails
+//  AND there's no previously cached config in localStorage (e.g. first-ever
+//  load with no network). See CLAUDE.md "Config" section for the full
+//  fetch/cache/fallback design.
 // ══════════════════════════════════════════════
 const STUB_TRIPS = [
   { label: "Chelsea", miles: 34 },
@@ -35,13 +34,111 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 // ── Persistence — single localStorage blob (profile + period + trips) ──
 // trips is a single live list, not scoped per month/year (see CLAUDE.md).
 const STORAGE_KEY = 'fm_mileage_log_v2';
+// Separate cache for the fetched Trips/Rates config (see loadConfig below) —
+// distinct lifetime/purpose from the profile/period/trips blob above.
+const CONFIG_STORAGE_KEY = 'fm_mileage_log_v2_config';
+
+// ── CSV parsing — minimal, handles quoted fields (commas/quotes inside a
+// cell), since this is admin-edited data, not a fixed machine format. ──
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      row.push(field); field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); field = '';
+      rows.push(row); row = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length === 1 && r[0] === ''));
+}
+
+// Header cells are admin-typed, so match loosely: lowercase, strip
+// everything but letters/digits (so "Start Date" / "Rate ($/mile)" both
+// still match), try an exact match first, then a "starts with" match.
+function normalizeHeader(h) {
+  return String(h).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function findColumn(headerRow, aliases) {
+  const normalized = headerRow.map(normalizeHeader);
+  for (const alias of aliases) {
+    const idx = normalized.indexOf(alias);
+    if (idx !== -1) return idx;
+  }
+  for (const alias of aliases) {
+    const idx = normalized.findIndex(h => h.startsWith(alias));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+// Accepts "YYYY-MM-DD" or "YYYY/MM/DD" (with 1- or 2-digit month/day),
+// normalized to zero-padded "YYYY-MM-DD" so string comparison in
+// currentRate keeps working regardless of which separator the sheet uses.
+function parseCsvDate(str) {
+  const m = String(str).trim().match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (!m) return null;
+  return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+}
+
+function parseTripsCsv(text) {
+  const rows = parseCsv(text);
+  if (!rows.length) throw new Error('Trips CSV is empty');
+  const [header, ...dataRows] = rows;
+  const labelIdx = findColumn(header, ['label']);
+  const milesIdx = findColumn(header, ['miles', 'mileage']);
+  if (labelIdx === -1 || milesIdx === -1) throw new Error('Trips CSV missing label/miles columns');
+  const trips = [];
+  for (const r of dataRows) {
+    const label = (r[labelIdx] || '').trim();
+    const miles = parseFloat(r[milesIdx]);
+    if (!label || !Number.isFinite(miles)) continue;
+    trips.push({ label, miles });
+  }
+  if (!trips.length) throw new Error('Trips CSV has no valid rows');
+  return trips;
+}
+
+function parseRatesCsv(text) {
+  const rows = parseCsv(text);
+  if (!rows.length) throw new Error('Rates CSV is empty');
+  const [header, ...dataRows] = rows;
+  const dateIdx = findColumn(header, ['startdate']);
+  const rateIdx = findColumn(header, ['rate']);
+  if (dateIdx === -1 || rateIdx === -1) throw new Error('Rates CSV missing start_date/rate columns');
+  const rates = [];
+  for (const r of dataRows) {
+    const start_date = parseCsvDate(r[dateIdx]);
+    const rate = parseFloat(r[rateIdx]);
+    if (!start_date || !Number.isFinite(rate)) continue;
+    rates.push({ start_date, rate });
+  }
+  if (!rates.length) throw new Error('Rates CSV has no valid rows');
+  rates.sort((a, b) => a.start_date.localeCompare(b.start_date));
+  return rates;
+}
 
 function mileageLog() {
   return {
-    // ── Config (stubbed for now) ──
+    // ── Config — placeholder until loadConfig() resolves on page load ──
     tripOptions: STUB_TRIPS.map(t => ({ ...t, hash: hashTrip(t.label, t.miles) })),
     rates: [...STUB_RATES].sort((a, b) => a.start_date.localeCompare(b.start_date)),
-    configStatusText: 'Using temporary stub trip/rate data — Google Sheets config not yet connected.',
+    configStatusText: 'Loading trip/rate config…',
 
     // ── Profile (persists globally; not month/year-scoped) ──
     // sigSource records which method ('upload'|'draw') produced the current
@@ -157,6 +254,65 @@ function mileageLog() {
       if (!confirm('Clear all selected trips for this list? This cannot be undone.')) return;
       this.trips = {};
       this.resetNotices = {};
+    },
+
+    // ── Config fetch — published Google Sheets CSVs, fetched on page load
+    // only (see CLAUDE.md "Config"). Falls back to the last cached config on
+    // failure, and to the built-in STUB config if there's no cache either;
+    // both fallbacks are surfaced in configStatusText, never silent. ──
+    async loadConfig() {
+      try {
+        const configRes = await fetch('config.json');
+        if (!configRes.ok) throw new Error('config.json fetch failed: ' + configRes.status);
+        const cfg = await configRes.json();
+        if (!cfg.tripsCsvUrl || !cfg.ratesCsvUrl) throw new Error('config.json missing tripsCsvUrl/ratesCsvUrl');
+
+        const [tripsText, ratesText] = await Promise.all([
+          fetch(cfg.tripsCsvUrl).then(r => { if (!r.ok) throw new Error('Trips CSV fetch failed: ' + r.status); return r.text(); }),
+          fetch(cfg.ratesCsvUrl).then(r => { if (!r.ok) throw new Error('Rates CSV fetch failed: ' + r.status); return r.text(); }),
+        ]);
+
+        const trips = parseTripsCsv(tripsText);
+        const rates = parseRatesCsv(ratesText);
+        const fetchedAt = new Date();
+
+        try {
+          localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ trips, rates, fetchedAt: fetchedAt.toISOString() }));
+        } catch (e) { /* localStorage unavailable/full — cache write silently skipped */ }
+
+        this.applyFetchedConfig(trips, rates);
+        this.configStatusText = `Config last checked: ${fetchedAt.toLocaleString()}`;
+      } catch (err) {
+        let cached;
+        try { cached = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY)); } catch (e) {}
+        if (cached && cached.trips && cached.rates) {
+          this.applyFetchedConfig(cached.trips, cached.rates);
+          this.configStatusText = `Could not reach Google Sheets — using cached config from ${new Date(cached.fetchedAt).toLocaleString()}.`;
+        } else {
+          this.configStatusText = 'Could not load trip/rate config and no cached copy is available — using built-in placeholder data. Check your connection and reload.';
+        }
+      }
+    },
+
+    applyFetchedConfig(trips, rates) {
+      this.tripOptions = trips.map(t => ({ ...t, hash: hashTrip(t.label, t.miles) }));
+      this.rates = [...rates].sort((a, b) => a.start_date.localeCompare(b.start_date));
+      this.reconcileTripsAgainstConfig();
+    },
+
+    // A stored trip's hash may no longer exist in the current config (its
+    // label/miles were edited or the row removed upstream). Silently
+    // dropping it to "No Trip" would hide that something changed, so flag
+    // it visibly instead via resetNotices (see CLAUDE.md "Trip identity").
+    reconcileTripsAgainstConfig() {
+      const validHashes = new Set(this.tripOptions.map(o => o.hash));
+      for (const day of Object.keys(this.trips)) {
+        const hash = this.trips[day];
+        if (hash && !validHashes.has(hash)) {
+          this.trips[day] = '';
+          this.resetNotices[day] = true;
+        }
+      }
     },
 
     // ── Signature capture — profile-style field, no clear button (see CLAUDE.md).
@@ -315,6 +471,9 @@ function mileageLog() {
       // so x-model's DOM sync finds the matching option.
       this.$nextTick(() => {
         if (saved && saved.trips) Object.assign(this.trips, saved.trips);
+        // Trips must be restored before loadConfig() resolves, so its hash
+        // reconciliation checks the real list rather than an empty one.
+        this.loadConfig();
       });
 
       this.$watch(

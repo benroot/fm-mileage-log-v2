@@ -1,0 +1,5 @@
+{
+  "_instructions": "Publish each Google Sheet tab to the web as CSV (File > Share > Publish to web > select the tab > CSV), then paste the resulting URL below. Trips tab needs a header row with columns: label, miles. Rates tab needs a header row with columns: start_date, rate. Keep 'Automatically republish when changes are made' checked in the Publish to web settings, or edits won't show up here.",
+  "tripsCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaVaGKCG4-wpUIuQ4U7hcbjXmqY7c88Fu1YQfFnnh_zTtlnlP-h0_I7nsvCwTSrqDYO1vlN9CcVWfB/pub?gid=0&single=true&output=csv",
+  "ratesCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaVaGKCG4-wpUIuQ4U7hcbjXmqY7c88Fu1YQfFnnh_zTtlnlP-h0_I7nsvCwTSrqDYO1vlN9CcVWfB/pub?gid=326195262&single=true&output=csv"
+}
