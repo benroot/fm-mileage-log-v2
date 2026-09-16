@@ -23,6 +23,7 @@
     <div>
       <h1>Mileage Reimbursement Log</h1>
       <div class="subtitle">University of Michigan Family Medicine Residency Program</div>
+      <a class="help-link screen-only" href="https://github.com/benroot/fm-mileage-log-v2/blob/main/README.md" target="_blank" rel="noopener">Need help? See the instructions</a>
     </div>
   </div>
 
@@ -46,8 +47,8 @@
     </div>
     <div class="preamble-row">
       <div class="field-group field-group-narrow">
-        <label class="field-label" for="f-rotation">Rotation:</label>
-        <input class="field-input" id="f-rotation" type="text" x-model="profile.rotation" placeholder="Rotation">
+        <label class="field-label" for="f-rotation">Rotations:</label>
+        <input class="field-input" id="f-rotation" type="text" x-model="profile.rotation" placeholder="Rotations (comma-separated)">
       </div>
       <div class="field-group month-year-group">
         <label class="field-label" for="f-month">Month:</label>
@@ -70,6 +71,10 @@
         <span class="rate-badge" x-text="rates.length ? ('Rate: $' + currentRate.toFixed(3) + '/mi') : 'Rate: not yet loaded'"></span>
       </div>
     </div>
+  </div>
+
+  <div class="policy-warning">
+    During elective, <strong>ONLY</strong> Continuity Clinics qualify for mileage reimbursement.
   </div>
 
   <div class="config-status" x-text="configStatusText"></div>

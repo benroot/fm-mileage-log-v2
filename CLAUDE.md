@@ -75,7 +75,7 @@ patterns this project is extending, not just historical context.
 
 Built so far (in this order):
 
-1. Scaffold — `mileage-log.html` / `styles.css` / `app.js` / vendored
+1. Scaffold — `index.html` / `styles.css` / `app.js` / vendored
    Alpine, design tokens, system fonts. (Originally a two-page structure;
    since consolidated to one page — see "Print output" below.)
 2. Entry UI — per-day `<select>` list, leap-year-aware day count,
@@ -108,12 +108,16 @@ Next phase:
 
 Static files — no server, no build step:
 
-- `mileage-log.html` — markup: a single `.page` div (screen: one
-  continuous scrolling page; print: one physical sheet — see "Print
-  output" below).
+- `index.html` — markup: a single `.page` div (screen: one continuous
+  scrolling page; print: one physical sheet — see "Print output" below).
+  Named `index.html`, not `mileage-log.html` like v1, so it loads
+  automatically at the GitHub Pages root URL.
 - `styles.css` — screen styles + `@media print` overrides.
 - `app.js` — Alpine.js component logic and app state.
 - `vendor/alpine.min.js` — vendored Alpine.js (no CDN).
+- `README.md` — end-user instructions (how to fill out and print the form)
+  plus admin instructions for updating trip types/rates via the Google
+  Sheet (see "Config" below) — not this file, and not read by the app.
 
 ### JS approach: Alpine.js
 
@@ -227,6 +231,19 @@ in-progress selections is considered low.
 - Each dropdown pre-selects an explicit **"No Trip"** option.
 - Each `<select>` needs its own distinct accessible label (e.g. "Trip for
   June 3") — see Accessibility below.
+- A `.help-link` in the header links to README.md's **rendered GitHub blob
+  view** (`.../blob/main/README.md`), not a relative `README.md` link —
+  GitHub Pages serves `.md` files as raw markdown text (no front matter to
+  trigger Jekyll's conversion), so a same-origin link would show unstyled
+  markdown source instead of a readable page. Screen-only.
+- A `.policy-warning` banner ("During elective, ONLY Continuity Clinics
+  qualify for mileage reimbursement") sits above the entry table, visible
+  in **both** screen and print (same precedent as `.uber-line`'s cab/Uber
+  note) — it's compliance-relevant enough that the program coordinator
+  reviewing the printed form should see it too, not just the resident
+  filling it out on screen. Hardcoded program policy text, not
+  Sheet-driven config — don't move it into the Trips/Rates config without
+  being asked.
 
 ## Print output
 
