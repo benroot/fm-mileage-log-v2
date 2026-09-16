@@ -83,7 +83,7 @@
       <tbody>
         <template x-for="day in daysInMonth" :key="day">
           <tr>
-            <td class="day-num" x-text="day"></td>
+            <td class="day-num" x-text="weekdayFor(day) + ' ' + day"></td>
             <td>
               <select class="trip-select"
                       :id="'trip-' + day"
@@ -155,14 +155,18 @@
         <div class="summary-row">
           <span class="sum-desc">
             <span x-text="row.label"></span>
-            <span x-text="'— ' + row.count + ' trip' + (row.count !== 1 ? 's' : '') + ' × ' + row.miles + ' mi × $' + row.rate.toFixed(3) + '/mi'"></span>
+            <span x-text="'— ' + row.count + ' trip' + (row.count !== 1 ? 's' : '') + ' × ' + row.miles + ' mi'"></span>
           </span>
-          <span class="sum-amount" x-text="'$' + row.amount.toFixed(2)"></span>
+          <span class="sum-miles" x-text="row.subtotalMiles + ' mi'"></span>
         </div>
       </template>
-      <div class="sum-total-row">
-        <span class="sum-total-label" x-text="'Total Reimbursement (' + itemizedTrips.length + ' trip' + (itemizedTrips.length !== 1 ? 's' : '') + ', ' + totalMiles + ' mi)'"></span>
-        <span class="sum-total-amount" x-text="'$' + grandTotal.toFixed(2)"></span>
+      <div class="sum-subtotal-row">
+        <span class="sum-total-label" x-text="'Total Miles (' + itemizedTrips.length + ' trip' + (itemizedTrips.length !== 1 ? 's' : '') + ')'"></span>
+        <span class="sum-total-miles" x-text="totalMiles + ' mi'"></span>
+      </div>
+      <div class="sum-grand-row">
+        <span class="sum-total-label" x-text="'Reimbursement Request (' + totalMiles + ' mi × $' + currentRate.toFixed(3) + '/mi)'"></span>
+        <span class="sum-total-amount" x-text="'= $' + grandTotal.toFixed(2)"></span>
       </div>
     </div>
   </div>

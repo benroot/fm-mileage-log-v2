@@ -30,6 +30,7 @@ function hashTrip(label, miles) {
 }
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEKDAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // ── Persistence — single localStorage blob (profile + period + trips) ──
 // trips is a single live list, not scoped per month/year (see CLAUDE.md).
@@ -189,15 +190,20 @@ function mileageLog() {
       delete this.resetNotices[day];
     },
 
+    weekdayFor(day) {
+      return WEEKDAY_NAMES[new Date(this.period.year, this.period.month, day).getDay()];
+    },
+
     get itemizedTrips() {
       const rows = [];
-      const monthName = MONTH_NAMES[this.period.month];
+      const mm = String(this.period.month + 1).padStart(2, '0');
       for (const day of this.daysInMonth) {
         const hash = this.trips[day];
         if (!hash) continue;
         const opt = this.tripOptions.find(o => o.hash === hash);
         if (!opt) continue;
-        rows.push({ day, dateLabel: `${monthName} ${day}`, label: `${opt.label} — ${opt.miles} mi` });
+        const dd = String(day).padStart(2, '0');
+        rows.push({ day, dateLabel: `${mm}/${dd} (${this.weekdayFor(day)})`, label: opt.label });
       }
       // Numbered so the last row's number can be checked against the
       // summary's trip counts for a quick accuracy cross-check.
@@ -219,6 +225,10 @@ function mileageLog() {
       return [rows.slice(0, half), rows.slice(half)];
     },
 
+    // Each row totals its own miles only — dollars are never computed
+    // per-row. Total miles are summed across all rows first, then
+    // converted to dollars once via currentRate (see grandTotal), rather
+    // than summing per-row dollar amounts.
     get summaryRows() {
       const counts = {};
       for (const day of this.daysInMonth) {
@@ -226,7 +236,6 @@ function mileageLog() {
         if (!hash) continue;
         counts[hash] = (counts[hash] || 0) + 1;
       }
-      const rate = this.currentRate;
       return this.tripOptions
         .filter(opt => counts[opt.hash])
         .map(opt => {
@@ -235,19 +244,18 @@ function mileageLog() {
             hash: opt.hash,
             label: opt.label,
             miles: opt.miles,
-            rate,
             count,
-            amount: count * opt.miles * rate,
+            subtotalMiles: count * opt.miles,
           };
         });
     },
 
-    get grandTotal() {
-      return this.summaryRows.reduce((sum, r) => sum + r.amount, 0);
+    get totalMiles() {
+      return this.summaryRows.reduce((sum, r) => sum + r.subtotalMiles, 0);
     },
 
-    get totalMiles() {
-      return this.summaryRows.reduce((sum, r) => sum + r.count * r.miles, 0);
+    get grandTotal() {
+      return this.totalMiles * this.currentRate;
     },
 
     clearTrips() {

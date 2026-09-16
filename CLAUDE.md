@@ -5,7 +5,7 @@ Guidance for Claude Code (or any AI assistant) working in this repository.
 ## What this project is
 
 A single-page tool that lets University of Michigan Family Medicine
-residency staff track mileage for reimbursement and print a two-page PDF
+residency staff track mileage for reimbursement and print a one-page PDF
 form to submit. This is **v2** of an earlier hand-built version — the core
 purpose is unchanged, but the data model and entry UI are substantially
 redesigned to let a non-engineer admin update trip types and mileage rates
@@ -15,7 +15,7 @@ The app is still static files served from GitHub Pages: no server, no
 per-request backend logic. The one deliberate change from v1 is that it is
 **no longer offline-only** — it makes a small number of network calls on
 page load to fetch admin-editable config. Everything else about it (no
-build step, opened directly by a URL, printable two-page output) should be
+build step, opened directly by a URL, printable one-page output) should be
 treated the same way v1 treated those constraints: real, load-bearing
 design decisions, not incidental.
 
@@ -31,11 +31,16 @@ patterns this project is extending, not just historical context.
   model being replaced by the `trips` list model below, plus the
   undo/redo, autosave, and signature-capture logic being carried forward
   largely as-is.
-- `reference/fm-mileage-log-v1/mileage-log.html` — v1's markup, showing the
-  two-page `.page` div structure this project keeps.
+- `reference/fm-mileage-log-v1/mileage-log.html` — v1's markup. v2 originally
+  kept v1's two-page `.page` div structure but has since consolidated to a
+  single `.page` div (screen: one continuous scrolling page; print: one
+  physical sheet, with the itemized list switching to two CSS columns —
+  each with its own repeated header — once there are enough trips to need
+  it, see "Print output" below).
 - `reference/fm-mileage-log-v1/styles.css` — v1's screen + `@media print`
-  styles; the two-page print-fit approach carries forward, the visual
-  design (fonts, tokens) does not — see CSS section below.
+  styles; the general print-fit discipline (check print preview after any
+  layout change) carries forward, the two-page split and the visual design
+  (fonts, tokens) do not — see CSS section below.
 - `reference/fm-mileage-log-v1/CLAUDE.md` — the v1 project's own guidance
   file; useful for understanding *why* v1 was built the way it was, even
   where v2 deliberately diverges from it.
@@ -48,10 +53,14 @@ patterns this project is extending, not just historical context.
   unrelated changes into one edit.
 - **Ask before large refactors** not already agreed to below.
 - **Visual/print layout is a first-class concern, not a detail.** The whole
-  point of this app is a clean printable PDF, fit to **two US Letter
-  pages** (`@page { size: letter; margin: 0.45in }` in `@media print`). Any
+  point of this app is a clean printable PDF, fit to **one US Letter
+  page** (`@page { size: letter; margin: 0.45in }` in `@media print`). Any
   layout change is a risk to that fit — always check print preview after
-  touching layout, spacing, or content volume.
+  touching layout, spacing, or content volume. Past 10 itemized trips, the
+  print CSS switches the itemized list to two columns (see "Print output"
+  below) specifically to preserve the one-page fit — verify that switch
+  still holds at a worst-case, every-day-filled month after any change
+  near it.
 - **No CDN dependencies, no exceptions.** Alpine.js is vendored (committed)
   into the repo, e.g. `vendor/alpine.min.js`, not loaded from an external
   `<script src>`. Unlike v1, this project does **not** load Google Fonts —
@@ -217,30 +226,54 @@ in-progress selections is considered low.
 
 ## Print output
 
-### Page 1 — itemized trip list
+### Itemized trip list
 
 - Only days with a trip selected (not "No Trip") get a printed row —
   naturally bounded at 31 rows regardless of how many trip types exist in
   config.
-- Single-column layout with a header row labeling the two columns "Date"
-  and "Trip" (revised from an earlier two-column 1–15/16–end plan — a
-  single column fits easily within the two-page budget even at 31 rows,
-  and reads more like a normal list).
-- Each row: date (month name + day, e.g. "March 6" — the year appears
-  once, in the preamble, not per row), trip label with mileage appended
-  (e.g. "Chelsea — 34 mi"). An earlier draft of this spec omitted mileage
-  here since it already served its sanity-check purpose at selection
-  time; that was revised — mileage is shown on both the entry dropdown
-  and the printed itemized row.
-- Verify actual print fit at a worst-case month (every day filled) during
-  implementation.
+- Single column normally, with a header row labeling the columns "#",
+  "Date", and "Trip". Past 10 rows, switches to two side-by-side columns
+  — each with its own repeated header — so the list keeps the whole form
+  to one page (see `itemizedTwoColumn` / `itemizedColumns` in `app.js`;
+  revised from an even earlier two-column 1–15/16–end plan, which split by
+  fixed day range rather than adapting to how many trips are actually
+  used).
+- Each row is numbered with a running count (not restarted per column) so
+  the last number printed can be checked against the summary's trip
+  totals; the number is styled visually de-emphasized (muted color,
+  smaller, not bold) since it's a cross-check aid, not primary content.
+- Each row: date as `MM/DD (Weekday)` (e.g. "03/06 (Fri)" — the year
+  appears once, in the preamble, not per row), then the trip label alone,
+  **no mileage restated here**. (This spec has gone back and forth on
+  mileage-in-the-row more than once — v2 first omitted it, then added it
+  back reasoning it doubled as a sanity check, and now omits it again in
+  favor of a compact row, since the mileage is already visible on the
+  entry dropdown at selection time.)
+- Verify actual print fit at a worst-case month (every day filled) after
+  any change near this list.
 
-### Page 2 — summary
+### Summary
 
 - List only trip types actually used that month.
 - Per trip type used: label, number of times used, miles per instance,
-  rate, dollar value for that type's cumulative trips.
-- Grand total row summing across all used trip types.
+  and that type's **subtotal miles** (count × miles) — not a dollar
+  amount. No per-type row ever computes its own dollars.
+- Below the per-type rows, two label/value total lines (same layout as
+  the per-type rows: label left, value right), split by which side of the
+  final divider they sit on:
+  1. **"Total Miles (N trips)"** (`.sum-subtotal-row`, above the divider —
+     styled as one more, bolder line in the itemized list, light border
+     matching the per-type rows' own separator) — all rows' subtotal
+     miles summed (`totalMiles`), labeled with the trip count so it can
+     be cross-checked against the itemized list's last row number.
+  2. **"Reimbursement Request (`totalMiles` mi × $rate/mi)"**
+     (`.sum-grand-row`, below the strong navy divider — the final figure)
+     — the calculation spelled out in the label itself (not
+     de-emphasized — same label styling as the line above), with
+     `"= $" + grandTotal` right-justified at the larger size reserved for
+     the final figure. Since only one rate is ever in play per submission
+     (see "Rates tab" above), this is the only place the rate is stated —
+     there's no separate rate note elsewhere in the summary.
 
 ## CSS
 
